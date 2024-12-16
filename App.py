@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS
+from langchain.vectorstores import Chroma
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import RetrievalQA
 from langchain.schema import Document
@@ -13,29 +13,18 @@ from langchain.schema import Document
 # Load environment variables from .env file
 load_dotenv()
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-
-# Set OpenAI API key
 os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY
 
-# Initialize Streamlit app
 st.title("Citizen Complaint Assistant")
 
-# Path to the CSV file
 csv_file_path = 'emails.csv'
 
-# Check if the CSV file exists in the project directory
 if os.path.exists(csv_file_path):
-    # Read CSV file
     df = pd.read_csv(csv_file_path)
-    # Remove display of emails
-    # st.write("### Loaded Data from 'emails.csv'")
-    # st.dataframe(df)
 
-    # Check if 'email' column exists
     if 'email' not in df.columns:
         st.error("CSV file must contain an 'email' column.")
     else:
-        # Function to extract metadata from each email
         def extract_metadata(email_text):
             metadata = {}
             lines = email_text.split('\n')
@@ -57,31 +46,25 @@ if os.path.exists(csv_file_path):
                     metadata['contact'] = ' '.join(contact_info)
             return metadata
 
-        # Create Document objects from emails with metadata
         documents = [
             Document(page_content=email, metadata=extract_metadata(email))
             for email in df['email']
         ]
 
-        # Split documents into chunks for embedding
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=100
         )
         split_docs = text_splitter.split_documents(documents)
 
-        # Initialize embeddings and vector store
         embeddings = OpenAIEmbeddings()
-        vector_store = FAISS.from_documents(split_docs, embeddings)
+        # Use Chroma instead of FAISS
+        vector_store = Chroma.from_documents(split_docs, embeddings)
 
-        # Initialize OpenAI Chat LLM
         llm = ChatOpenAI(model_name='gpt-4o')  # Use your desired model
-
-        # Create RetrievalQA chain using from_chain_type
         retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 40})
         qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
 
-        # User input for querying the system
         query = st.text_input("Ask a question about the complaints:")
 
         if query:
