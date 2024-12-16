@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import DocArrayInMemorySearch
+from langchain.vectorstores.docarray import DocArrayInMemorySearch
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import RetrievalQA
 from langchain.schema import Document
